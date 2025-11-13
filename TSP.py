@@ -1,11 +1,12 @@
+from itertools import permutations
+from typing import Dict, List, Tuple
+
 import numpy as np
 from numpy import ndarray
 from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit_aer import AerSimulator
-from itertools import permutations
-from scipy.optimize import minimize, OptimizeResult
-from typing import List, Tuple, Dict
+from scipy.optimize import OptimizeResult, minimize
 
 print("\n" + "~" * 30)
 print("Travelling Salesman Problem - Quantum Approach")
@@ -37,6 +38,7 @@ n_cities: int = len(distance_matrix)
 print(f"\nSolving TSP for {n_cities} cities")
 print(f"Distance matrix:\n{distance_matrix}\n")
 
+
 def tsp_to_ising(
     distance_matrix: ndarray, penalty: float = 30
 ) -> tuple[SparsePauliOp, int]:
@@ -45,7 +47,6 @@ def tsp_to_ising(
 
     pauli_list: list[tuple[str, float]] = []
 
-    # Objective is to minimise the distance
     for i in range(n):
         for j in range(n):
             for k in range(n):
@@ -62,7 +63,6 @@ def tsp_to_ising(
                         pauli_str[qubit2] = "Z"
                         pauli_list.append(("".join(reversed(pauli_str)), coeff))
 
-    # Constraints with penalties
     for i in range(n):
         for j1 in range(n):
             for j2 in range(j1 + 1, n):
@@ -89,49 +89,43 @@ def tsp_to_ising(
     hamiltonian: SparsePauliOp = SparsePauliOp.from_list(pauli_list)
     return hamiltonian, num_qubits
 
-# Create Hamiltonian
+
 hamiltonian: SparsePauliOp
 num_qubits: int
 hamiltonian, num_qubits = tsp_to_ising(distance_matrix, penalty=40)
 print(f"Number of qubits: {num_qubits}")
 print(f"Hamiltonian terms: {len(hamiltonian)}")
 
-# Create a simple variational ansatz
+
 def create_ansatz(num_qubits: int, params: ndarray) -> QuantumCircuit:
     qc: QuantumCircuit = QuantumCircuit(num_qubits)
 
-    # Initial layer of RY rotations for quantum circuit
     param_idx: int = 0
     for i in range(num_qubits):
         qc.ry(params[param_idx], i)
         param_idx += 1
 
-    # Entangling layer for quantum circuit
     for i in range(num_qubits - 1):
         qc.cx(i, i + 1)
 
-    # Second layer of RY rotations for quantum circuit
     for i in range(num_qubits):
         qc.ry(params[param_idx], i)
         param_idx += 1
 
     return qc
 
+
 num_params: int = num_qubits * 2
 print(f"Circuit parameters: {num_params}")
 
-# Energy evaluation function
+
 def evaluate_energy(params: ndarray) -> float:
-    # Create circuit
     qc: QuantumCircuit = create_ansatz(num_qubits, params)
-
-    # Get statevector
     statevector: Statevector = Statevector(qc)
-
-    # Calculate expectation value
     expectation: float = statevector.expectation_value(hamiltonian).real
 
     return expectation
+
 
 print("\nRunning VQE optimisation...\n")
 
@@ -141,7 +135,6 @@ initial_params: ndarray = np.random.uniform(0, 2 * np.pi, num_params)
 initial_energy: float = evaluate_energy(initial_params)
 print(f"Initial energy: {initial_energy:.4f}")
 
-# Run optimisation
 result: OptimizeResult = minimize(
     evaluate_energy,
     initial_params,
@@ -163,12 +156,12 @@ transpiled_qc: QuantumCircuit = transpile(optimal_qc, simulator)
 job = simulator.run(transpiled_qc, shots=2000)
 counts: Dict[str, int] = job.result().get_counts()
 
-# Sort by counts
 sorted_counts: list[tuple[str, int]] = sorted(
     counts.items(), key=lambda x: x[1], reverse=True
 )
 
-print(f"\nTop 10 measurement results:")
+print("\nTop 10 measurement results:")
+
 
 def decode_bitstring(bitstring: str, n_cities: int) -> list[int]:
     tour: list[int] = []
@@ -176,15 +169,14 @@ def decode_bitstring(bitstring: str, n_cities: int) -> list[int]:
         found: bool = False
         for i in range(n_cities):
             idx: int = i * n_cities + j
-            if (
-                idx < len(bitstring) and bitstring[-(idx + 1)] == "1"
-            ):  # Reverse indexing
+            if idx < len(bitstring) and bitstring[-(idx + 1)] == "1":
                 tour.append(i)
                 found = True
                 break
         if not found:
             tour.append(-1)
     return tour
+
 
 def calculate_tour_distance(tour: list[int], distance_matrix: ndarray) -> float:
     if -1 in tour or len(set(tour)) != len(tour) or len(tour) != len(distance_matrix):
@@ -193,6 +185,7 @@ def calculate_tour_distance(tour: list[int], distance_matrix: ndarray) -> float:
     for i in range(len(tour)):
         total += distance_matrix[tour[i]][tour[(i + 1) % len(tour)]]
     return total
+
 
 best_valid_tour: list[int] | None = None
 best_valid_distance: float = float("inf")
@@ -219,8 +212,8 @@ else:
     print("No valid tour found")
     print("Try increasing penalty or running with different random seed")
 
-# Classical solution
 print("\nClassical optimal solution (brute force):\n")
+
 
 def solve_tsp_classical(distance_matrix: ndarray) -> tuple[list[int], float]:
     n: int = len(distance_matrix)
@@ -239,19 +232,20 @@ def solve_tsp_classical(distance_matrix: ndarray) -> tuple[list[int], float]:
 
     return best_tour, min_distance
 
+
 classical_tour: list[int]
 classical_distance: float
 classical_tour, classical_distance = solve_tsp_classical(distance_matrix)
 print(f"Optimal tour: {classical_tour}")
 print(f"Optimal distance: {classical_distance}")
 
-# Comparison
 print("\nSummary:\n")
 if best_valid_tour:
     gap: float = ((best_valid_distance - classical_distance) / classical_distance) * 100
     print(f"Quantum solution: {best_valid_tour} (distance: {best_valid_distance:.1f})")
     print(f"Classical solution: {classical_tour} (distance: {classical_distance})")
     print(f"Optimality gap: {gap:.1f}%")
+
     if gap == 0:
         print("Quantum algorithm found the optimal solution!")
     elif gap < 20:
@@ -263,7 +257,6 @@ else:
     print("Quantum algorithm did not find a valid solution")
 
 print("\n" + "~" * 30)
-print("Tips to improve results:")
 print("Increase optimiser iterations (maxiter)")
 print("Adjust penalty parameter (30-50)")
 print("Add more circuit layers (deeper ansatz)")
