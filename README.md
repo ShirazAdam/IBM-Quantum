@@ -10,7 +10,7 @@ This repository contains quantum computing implementations of classic NP-complet
 ## 📋 Problems Implemented
 
 ### 1. Travelling Salesman Problem (TSP)
-**File:** `tsp_qiskit.py`
+**File:** `TSP.py`
 
 **Problem Description:**
 Find the shortest route that visits all cities exactly once and returns to the starting city.
@@ -36,7 +36,7 @@ Find the shortest route that visits all cities exactly once and returns to the s
 ---
 
 ### 2. Max-Cut Problem
-**File:** `maxcut_qiskit.py`
+**File:** `Max-Cut.py`
 
 **Problem Description:**
 Partition graph nodes into two sets to maximise the number of edges between the sets.
@@ -69,7 +69,7 @@ Partition graph nodes into two sets to maximise the number of edges between the 
 ---
 
 ### 3. Knapsack Problem
-**File:** `knapsack_qiskit.py`
+**File:** `Knapsack.py`
 
 **Problem Description:**
 Select items to maximise total value whilst staying within a weight capacity constraint.
@@ -124,10 +124,10 @@ pip install qiskit qiskit-algorithms qiskit-aer scipy numpy matplotlib networkx
 
 ### Basic Usage
 Each script can be run directly:
-```bash
-python tsp_qiskit.py
-python maxcut_qiskit.py
-python knapsack_qiskit.py
+```powershell
+python TSP.py
+python Max-Cut.py
+python Knapsack.py
 ```
 
 ### Customising Problems
